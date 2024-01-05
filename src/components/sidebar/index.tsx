@@ -5,6 +5,7 @@ import HomeIcon from "@mui/icons-material/Home";
 import SettingsIcon from "@mui/icons-material/Settings";
 import { Link } from "react-router-dom";
 import ConfigModal from "../configModal";
+import QuizIcon from "@mui/icons-material/Quiz";
 
 export default function Sidebar({ children }: { children: React.ReactNode }) {
   const [modal, setModal] = useState(false);
@@ -49,6 +50,17 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
               >
                 <HomeIcon />
                 <span className="ms-3 text-white">Adventure Generator</span>
+              </Link>
+            </li>
+          </ul>
+          <ul className="space-y-2 font-medium">
+            <li>
+              <Link
+                to="/AiHelper"
+                className="flex items-center p-2 text-white rounded-lg dark:text-white hover:bg-neutral-600 dark:hover:bg-gray-700 group"
+              >
+                <QuizIcon />
+                <span className="ms-3 text-white">AI DM Helper</span>
               </Link>
             </li>
           </ul>
