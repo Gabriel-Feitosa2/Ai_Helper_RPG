@@ -13,27 +13,31 @@ import { useConfigContext } from "../context/configcontext";
 interface ParametersProps {
   setting: string;
   worldInfo: string;
+  action: string;
+  theme: string;
+  element: string;
+  question: string;
 }
 
-function AdventureGenerator() {
+function ChooseYourOwnHistory() {
   const { configs, firstOpen, setFirstOpen } = useConfigContext();
 
   const [response, setReponse] = useState<any>();
-  const [parameters, setParameters] = useState({} as ParametersProps);
-  const [action, setAction] = useState("Random");
-  const [theme, setTheme] = useState("Random");
+  const [parameters, setParameters] = useState({
+    setting: "",
+    worldInfo: "",
+    action: "Random",
+    theme: "Random",
+    element: "Random",
+    question: "",
+  } as ParametersProps);
+
   const [loading, setLoading] = useState(false);
   const [modal, setModal] = useState(false);
   const [modalConfig, setModalConfig] = useState(firstOpen);
   const [disabledButton, setDisabledButton] = useState(false);
-  const [error, setError] = useState(false);
 
   const GenerateResponse = async () => {
-    if (!configs.openAiUrl) {
-      setError(true);
-      return;
-    }
-    setError(false);
     setDisabledButton(true);
     const parser = StructuredOutputParser.fromNamesAndDescriptions({
       Title: "The Title of the adveture",
@@ -68,8 +72,14 @@ function AdventureGenerator() {
       setLoading(true);
       const responseData: any = await chain.invoke({
         setting: parameters.setting,
-        action: action === "Random" ? getRandomString(actions) : action,
-        theme: theme === "Random" ? getRandomString(themes) : theme,
+        action:
+          parameters.action === "Random"
+            ? getRandomString(actions)
+            : parameters.action,
+        theme:
+          parameters.theme === "Random"
+            ? getRandomString(themes)
+            : parameters.theme,
         format_instructions: parser.getFormatInstructions(),
         world_info: parameters.worldInfo,
       });
@@ -131,7 +141,12 @@ function AdventureGenerator() {
             <select
               id="default"
               className="bg-neutral-800 border border-black mb-6 text-sm rounded-lg focus:bg-neutral-800 focus:border-blue-500 block w-38 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-red-800 dark:focus:border-red-800"
-              onChange={(e) => setAction(e.target.value)}
+              onChange={(e) =>
+                setParameters((parameters) => ({
+                  ...parameters,
+                  action: e.target.value,
+                }))
+              }
             >
               <option selected value="Random">
                 Random
@@ -143,22 +158,7 @@ function AdventureGenerator() {
               ))}
             </select>
           </div>
-          <div>
-            <label className="block mb-2 text-sm font-medium text-center dark:text-white">
-              The Setting of the adventure
-            </label>
-            <input
-              type="text"
-              placeholder="Setting"
-              className="h-10 p-2 bg-neutral-800 rounded"
-              onChange={(e) =>
-                setParameters((parameters) => ({
-                  ...parameters,
-                  setting: e.target.value,
-                }))
-              }
-            ></input>
-          </div>
+
           <div>
             <label className="block mb-2 text-sm font-medium text-center dark:text-white">
               Themes
@@ -166,7 +166,12 @@ function AdventureGenerator() {
             <select
               id="default"
               className="bg-neutral-800 border border-black mb-6 text-sm rounded-lg focus:bg-neutral-800 focus:border-blue-500 block w-38 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-red-800 dark:focus:border-red-800"
-              onChange={(e) => setTheme(e.target.value)}
+              onChange={(e) =>
+                setParameters((parameters) => ({
+                  ...parameters,
+                  theme: e.target.value,
+                }))
+              }
             >
               <option selected value="Random">
                 Random
@@ -179,65 +184,7 @@ function AdventureGenerator() {
             </select>
           </div>
         </div>
-        <div className="bg-neutral-800 min-w-[48rem] min-h-[5rem] max-w-[48rem]  rounded-md p-4 ">
-          <div className="whitespace-pre-wrap">
-            {loading && (
-              <div role="status" className="flex justify-center items-center">
-                <svg
-                  aria-hidden="true"
-                  className="w-8 h-8 text-gray-200 animate-spin dark:text-gray-600 fill-fuchsia-950"
-                  viewBox="0 0 100 101"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
-                    fill="currentColor"
-                  />
-                  <path
-                    d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
-                    fill="currentFill"
-                  />
-                </svg>
-                <span className="sr-only">Loading...</span>
-              </div>
-            )}
-            {response && !loading && (
-              <div>
-                <p>
-                  <b>Title: </b>
-                  {response?.responseData.Title}
-                </p>
-                <br />
-                <p>
-                  <b>Adventure Summary: </b>
-                  {response?.responseData.Adventure_summary}
-                </p>
-                <br />
-
-                <p>
-                  <b>Adventure Beginning: </b>
-                  {response?.responseData.Adventure_beginning}
-                </p>
-                <br />
-                <p>
-                  <b>Adventure Middle: </b>
-                  {response?.responseData.Adventure_middle}
-                </p>
-                <br />
-                <p>
-                  <b>Adventure Finale: </b>
-                  {response?.responseData.Adventure_finale}
-                </p>
-                <br />
-                <p>
-                  <b>Plot Twist: </b> {response?.responseData.Plot_twist}
-                </p>
-                <br />
-              </div>
-            )}
-          </div>
-        </div>
+        <div className="bg-neutral-800 min-w-[48rem] min-h-[5rem] max-w-[48rem]  rounded-md p-4 "></div>
         <button
           onClick={() => GenerateResponse()}
           className="bg-fuchsia-950 rounded p-2 h-12 mt-4 disabled:opacity-60"
@@ -245,11 +192,6 @@ function AdventureGenerator() {
         >
           Generate Adventure
         </button>
-      </div>
-      <div className="flex justify-center">
-        {error && (
-          <p className="text-red-600">You need to enter a URL in configs</p>
-        )}
       </div>
 
       <Modal
@@ -263,21 +205,39 @@ function AdventureGenerator() {
           style={{ transform: "translate(-50%, -50%)" }}
         >
           <div className="flex flex-col gap-4">
-            <textarea
-              id="textarea"
-              name="textarea"
-              rows={8}
-              cols={50}
-              className="bg-neutral-900 p-2 resize-none"
-              placeholder="Tell a little about the setting and the world in which the adventure takes place"
-              value={parameters.worldInfo}
-              onChange={(e) =>
-                setParameters((parameters) => ({
-                  ...parameters,
-                  worldInfo: e.target.value,
-                }))
-              }
-            ></textarea>
+            <div>
+              <label className="block mb-2 text-sm font-medium text-center dark:text-white">
+                The Setting of the Community
+              </label>
+              <input
+                type="text"
+                placeholder="Setting"
+                className="h-10 p-2 bg-neutral-900 rounded w-full"
+                onChange={(e) =>
+                  setParameters((parameters) => ({
+                    ...parameters,
+                    setting: e.target.value,
+                  }))
+                }
+              ></input>
+            </div>
+            <div className="flex flex-col gap-4">
+              <textarea
+                id="textarea"
+                name="textarea"
+                rows={8}
+                cols={50}
+                className="bg-neutral-900 p-2 resize-none"
+                placeholder="Tell a little about the setting and the world in which the adventure takes place"
+                value={parameters.worldInfo}
+                onChange={(e) =>
+                  setParameters((parameters) => ({
+                    ...parameters,
+                    worldInfo: e.target.value,
+                  }))
+                }
+              ></textarea>
+            </div>
           </div>
         </div>
       </Modal>
@@ -291,4 +251,4 @@ function AdventureGenerator() {
   );
 }
 
-export default AdventureGenerator;
+export default ChooseYourOwnHistory;

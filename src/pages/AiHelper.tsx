@@ -34,10 +34,15 @@ function AiHelper() {
   const [modal, setModal] = useState(false);
   const [modalConfig, setModalConfig] = useState(firstOpen);
   const [disabledButton, setDisabledButton] = useState(false);
+  const [error, setError] = useState(false);
 
-  const teste = async () => {
+  const GenerateResponse = async () => {
+    if (!configs.openAiUrl) {
+      setError(true);
+      return;
+    }
+    setError(false);
     setDisabledButton(true);
-
     const prompt = PromptTemplate.fromTemplate(
       `You are an assistant made to help an RPG master answer his questions. 
         Answer the question and be objective in your answer. 
@@ -90,6 +95,9 @@ function AiHelper() {
   return (
     <Sidebar>
       <div className="w-full justify-center items-center flex  flex-col">
+        <div className="mb-4 font-bold">
+          <h1>Make An Question about you adventure</h1>
+        </div>
         <div className="flex flex-col">
           <div className="flex flex-col mb-4">
             <label className="block mb-2 text-sm font-medium text-center dark:text-white">
@@ -206,7 +214,7 @@ function AiHelper() {
                   rows={8}
                   cols={80}
                   className="bg-neutral-800 p-2 resize-none rounded"
-                  placeholder="Tell a little about the setting and the world in which the adventure takes place"
+                  placeholder="Make the Question"
                   value={parameters.question}
                   onChange={(e) =>
                     setParameters((parameters) => ({
@@ -248,12 +256,17 @@ function AiHelper() {
           </div>
           <div className="flex justify-center">
             <button
-              onClick={() => teste()}
+              onClick={() => GenerateResponse()}
               className="bg-fuchsia-950 rounded p-2 h-12 mt-4 disabled:opacity-60 w-48"
               disabled={disabledButton}
             >
               Generate Response
             </button>
+          </div>
+          <div className="flex justify-center">
+            {error && (
+              <p className="text-red-600">You need to enter a URL in configs</p>
+            )}
           </div>
         </div>
       </div>
@@ -286,6 +299,7 @@ function AiHelper() {
           </div>
         </div>
       </Modal>
+
       <ConfigModal
         openModal={modalConfig}
         onClose={() => {
