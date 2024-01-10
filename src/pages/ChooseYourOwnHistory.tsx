@@ -113,7 +113,7 @@ function ChooseYourOwnHistory() {
   };
 
   console.log(response);
-  console.log(configs);
+  console.log(loading);
 
   return (
     <Sidebar>
