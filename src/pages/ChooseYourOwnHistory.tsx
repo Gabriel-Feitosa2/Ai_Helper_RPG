@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { actions, themes } from "../utils/tables";
+import { actions, elements, positiveOrNegative, themes } from "../utils/tables";
 import { getRandomString } from "../utils/random";
 import { RunnableSequence } from "langchain/runnables";
 import { PromptTemplate } from "langchain/prompts";
@@ -9,6 +9,8 @@ import Sidebar from "../components/sidebar";
 import { Modal } from "@mui/material";
 import ConfigModal from "../components/configModal";
 import { useConfigContext } from "../context/configcontext";
+import { BufferMemory } from "langchain/memory";
+import { ConversationChain } from "langchain/chains";
 
 interface ParametersProps {
   setting: string;
@@ -19,10 +21,31 @@ interface ParametersProps {
   question: string;
 }
 
-function ChooseYourOwnHistory() {
-  const { configs, firstOpen, setFirstOpen } = useConfigContext();
+interface ResponseData {
+  responseData: {
+    difficulties: string;
+    solution1: string;
+    solutionPositive1: string;
+    solutionNegative1: string;
+    solution2: string;
+    solutionPositive2: string;
+    solutionNegative2: string;
+    solutionChosse?: string;
+  };
+}
 
-  const [response, setReponse] = useState<any>();
+interface ResponseProps {
+  data: ResponseData;
+  from: string;
+  solution?: string;
+  resolution?: string;
+}
+
+function ChooseYourOwnHistory() {
+  const { configs } = useConfigContext();
+
+  const [responseCurrent, setResponseCurrent] = useState<ResponseProps>();
+  const [responseHistory, setResponseHistory] = useState<ResponseProps[]>([]);
   const [parameters, setParameters] = useState({
     setting: "",
     worldInfo: "",
@@ -33,87 +56,95 @@ function ChooseYourOwnHistory() {
   } as ParametersProps);
 
   const [loading, setLoading] = useState(false);
-  const [modal, setModal] = useState(false);
-  const [modalConfig, setModalConfig] = useState(firstOpen);
+  const [modal, setModal] = useState(true);
+
   const [disabledButton, setDisabledButton] = useState(false);
 
   const GenerateResponse = async () => {
-    setDisabledButton(true);
-    const parser = StructuredOutputParser.fromNamesAndDescriptions({
-      Title: "The Title of the adveture",
-      Adventure_summary: "The summary of the adventure",
-      Adventure_beginning:
-        "the detailed story of the adventure and what the party encounters at the beginning of the adventure",
-      Adventure_middle:
-        "the detailed story of the adventure and what the party encounters at the middle of the adventure",
-      Adventure_finale:
-        "the detailed story of the adventure and what the party encounters at the finale of the adventure",
-      Plot_twist: "A Plot twist in the end of the adveture",
+    //setDisabledButton(true);
+    setLoading(true);
+    const model = new OpenAI({
+      temperature: 0.9,
+      openAIApiKey: "null",
+      configuration: { baseURL: `${configs.openAiUrl.trim()}/v1` },
     });
 
-    const chain = RunnableSequence.from([
-      PromptTemplate.fromTemplate(
-        `You are a assistant made to help create tabletop RPG adventures, make a RPG adventure with this world build info in mind {world_info}. use the following structure.
-     {format_instructions} use the following setting: {setting} and the following theme: {action} and {theme}, RESPOND ONLY WITH THE JSON
-      `
-      ),
-      new OpenAI({
-        temperature: 0.9,
-        openAIApiKey: "YOUR-API-KEY", // In Node.js defaults to process.env.OPENAI_API_KEY
-        maxTokens: -1,
-        configuration: {
-          baseURL: `${configs.openAiUrl.trim()}/v1`,
-        },
-      }),
-      parser,
-    ]);
+    const parser = StructuredOutputParser.fromNamesAndDescriptions({
+      difficulties:
+        "describes some catastrophe, war, political situation etc... that happens in the setting",
+      solution1: "a possible solution to the difficulties",
+      solutionPositive1: "a positive result from the solution1",
+      solutionNegative1: "a negative solution from the solution1",
+      solution2: "a possible solution to the difficulties",
+      solutionPositive2: "a positive result from the solution2",
+      solutionNegative2: "a negative result from the solution2",
+    });
+
+    console.log(parser.getFormatInstructions());
+
+    const memory = new BufferMemory();
+    const chain = new ConversationChain({ llm: model, memory: memory });
+
+    // const res2 = await chain.call({
+    //   input: "make another difficultie",
+    // });
+    // console.log({ res2 });
 
     try {
-      setLoading(true);
-      const responseData: any = await chain.invoke({
-        setting: parameters.setting,
-        action:
-          parameters.action === "Random"
-            ? getRandomString(actions)
-            : parameters.action,
-        theme:
-          parameters.theme === "Random"
-            ? getRandomString(themes)
-            : parameters.theme,
-        format_instructions: parser.getFormatInstructions(),
-        world_info: parameters.worldInfo,
+      const res1 = await chain.call({
+        input: `let's play a game, I will describe a setting such as a medieval kingdom, an exploring spaceship, a space colony etc..., and you will describe a scenario of difficultie and two possible solutions considering the previous scenarios, I will choose the scenario and I will talk about whether there will be a positive, negative or ambiguous result. use the following structure.
+     ${parser.getFormatInstructions()} for the difficultie, generates based on the following elements, action: ${getRandomString(
+          actions
+        )}, theme: ${getRandomString(themes)} element: ${getRandomString(
+          elements
+        )} .The setting is ${parameters.setting}. RESPOND ONLY WITH THE JSON`,
       });
-      console.log({ responseData });
-      setReponse({ responseData });
-      setLoading(false);
-      setDisabledButton(false);
-    } catch (error) {
-      console.log(error);
-      const errorReponse = error as string;
-      const match = String(errorReponse).match(/\{([^}]+)\}/);
-      console.log(match);
+      const match = String(res1.response).match(/\{([^}]+)\}/);
       if (match) {
-        // Obter a substring entre as chaves
         const jsonSubstring = match[0];
-
-        // Converter a substring em um objeto JSON
-        try {
-          const responseData = JSON.parse(jsonSubstring);
-          console.log("consertado: ", responseData);
-          setReponse({ responseData });
-          setDisabledButton(false);
-          setLoading(false);
-        } catch {
-          GenerateResponse();
-        }
+        const responseData = JSON.parse(jsonSubstring);
+        console.log(responseData);
+        setResponseCurrent({ data: { responseData }, from: "IA" });
+        setLoading(false);
       } else {
         GenerateResponse();
       }
+    } catch (error) {
+      console.log(error);
+      GenerateResponse();
     }
   };
 
-  console.log(response);
-  console.log(loading);
+  const ChosseOne = (
+    data: ResponseData,
+    solution: string,
+    solution1: boolean
+  ) => {
+    const getPositiveOrNegative = () => {
+      if (solution1) {
+        return getRandomString(positiveOrNegative) === "positive"
+          ? data.responseData.solutionPositive1
+          : data.responseData.solutionNegative1;
+      } else {
+        return getRandomString(positiveOrNegative) === "positive"
+          ? data.responseData.solutionPositive2
+          : data.responseData.solutionNegative2;
+      }
+    };
+
+    setResponseHistory([
+      ...responseHistory,
+      { data: data, from: "AI" },
+      { data: data, from: "USER", solution: solution },
+      { data: data, from: "AI", resolution: getPositiveOrNegative() },
+    ]);
+    setResponseCurrent(undefined);
+    GenerateResponse();
+  };
+
+  console.log(responseCurrent);
+  console.log(responseHistory);
+  // console.log(response.res1.response.match(/\{([^}]+)\}/));
 
   return (
     <Sidebar>
@@ -133,65 +164,111 @@ function ChooseYourOwnHistory() {
             </button>
           </div>
         </div>
-        <div className="flex gap-[9rem] ">
-          <div>
-            <label className="block mb-2 text-sm font-medium text-center dark:text-white">
-              Actions
-            </label>
-            <select
-              id="default"
-              className="bg-neutral-800 border border-black mb-6 text-sm rounded-lg focus:bg-neutral-800 focus:border-blue-500 block w-38 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-red-800 dark:focus:border-red-800"
-              onChange={(e) =>
-                setParameters((parameters) => ({
-                  ...parameters,
-                  action: e.target.value,
-                }))
-              }
-            >
-              <option selected value="Random">
-                Random
-              </option>
-              {actions.map((action, index) => (
-                <option value={action} key={index}>
-                  {action}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block mb-2 text-sm font-medium text-center dark:text-white">
-              Themes
-            </label>
-            <select
-              id="default"
-              className="bg-neutral-800 border border-black mb-6 text-sm rounded-lg focus:bg-neutral-800 focus:border-blue-500 block w-38 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-red-800 dark:focus:border-red-800"
-              onChange={(e) =>
-                setParameters((parameters) => ({
-                  ...parameters,
-                  theme: e.target.value,
-                }))
-              }
-            >
-              <option selected value="Random">
-                Random
-              </option>
-              {themes.map((theme, index) => (
-                <option value={theme} key={index}>
-                  {theme}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="mb-12">
+          <h1 className="font-extrabold text-lg">Choose Your Own History</h1>
         </div>
-        <div className="bg-neutral-800 min-w-[48rem] min-h-[5rem] max-w-[48rem]  rounded-md p-4 "></div>
-        <button
-          onClick={() => GenerateResponse()}
-          className="bg-fuchsia-950 rounded p-2 h-12 mt-4 disabled:opacity-60"
-          disabled={disabledButton}
-        >
-          Generate Adventure
-        </button>
+        <div className="bg-neutral-800 min-w-[54rem] min-h-[5rem] max-w-[54rem] h-[34rem] rounded-md p-4 overflow-scroll">
+          {responseHistory.map((response: any) => {
+            return (
+              <>
+                {" "}
+                <div
+                  className={`flex ${
+                    response.from === "AI" ? "justify-end" : ""
+                  } w-full mb-4`}
+                >
+                  <p
+                    className={`${
+                      response.from === "AI" ? "bg-gray-600" : "bg-green-500"
+                    } max-w-64 rounded-md p-2`}
+                  >
+                    {response.resolution
+                      ? response.resolution
+                      : response.from === "AI"
+                      ? response.data.responseData.difficulties
+                      : response.solution}
+                  </p>
+                </div>
+              </>
+            );
+          })}
+          {responseCurrent && (
+            <>
+              <div className="flex justify-end w-full mb-4">
+                <p
+                  className={`${
+                    responseCurrent.from === "IA"
+                      ? "bg-gray-600"
+                      : "bg-green-500"
+                  } max-w-64 rounded-md p-2`}
+                >
+                  {responseCurrent.data.responseData.difficulties}
+                </p>
+              </div>
+              <div className="flex flex-col items-center justify-center gap-6 ">
+                <div>
+                  <h1 className="font-bold mb-8">Chosse one</h1>
+                </div>
+                <div className="flex items-center gap-8 justify-around w-full">
+                  <p
+                    className="bg-gray-600 max-w-64 rounded-md p-2 cursor-pointer hover:bg-gray-700"
+                    onClick={() =>
+                      ChosseOne(
+                        responseCurrent.data,
+                        responseCurrent.data.responseData.solution1,
+                        true
+                      )
+                    }
+                  >
+                    {responseCurrent.data.responseData.solution1}
+                  </p>
+                  <p
+                    className="bg-gray-600 max-w-64 rounded-md p-2 cursor-pointer hover:bg-gray-700"
+                    onClick={() =>
+                      ChosseOne(
+                        responseCurrent.data,
+                        responseCurrent.data.responseData.solution2,
+                        false
+                      )
+                    }
+                  >
+                    {responseCurrent.data.responseData.solution2}
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
+          {loading && (
+            <div role="status" className="flex justify-center items-center">
+              <svg
+                aria-hidden="true"
+                className="w-8 h-8 text-gray-200 animate-spin dark:text-gray-600 fill-fuchsia-950"
+                viewBox="0 0 100 101"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
+                  fill="currentColor"
+                />
+                <path
+                  d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
+                  fill="currentFill"
+                />
+              </svg>
+              <span className="sr-only">Loading...</span>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-8">
+          <button
+            onClick={() => GenerateResponse()}
+            className="bg-fuchsia-950 rounded p-2 h-12 mt-4 disabled:opacity-60"
+            disabled={disabledButton}
+          >
+            Generate Adventure
+          </button>
+        </div>
       </div>
 
       <Modal
@@ -213,6 +290,7 @@ function ChooseYourOwnHistory() {
                 type="text"
                 placeholder="Setting"
                 className="h-10 p-2 bg-neutral-900 rounded w-full"
+                value={parameters.setting}
                 onChange={(e) =>
                   setParameters((parameters) => ({
                     ...parameters,
@@ -228,7 +306,7 @@ function ChooseYourOwnHistory() {
                 rows={8}
                 cols={50}
                 className="bg-neutral-900 p-2 resize-none"
-                placeholder="Tell a little about the setting and the world in which the adventure takes place"
+                placeholder="Tell a little about the setting and the world in which the Community takes place"
                 value={parameters.worldInfo}
                 onChange={(e) =>
                   setParameters((parameters) => ({
@@ -241,12 +319,6 @@ function ChooseYourOwnHistory() {
           </div>
         </div>
       </Modal>
-      <ConfigModal
-        openModal={modalConfig}
-        onClose={() => {
-          setModalConfig(false), setFirstOpen(false);
-        }}
-      />
     </Sidebar>
   );
 }

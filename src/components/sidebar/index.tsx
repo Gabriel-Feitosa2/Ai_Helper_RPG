@@ -64,6 +64,17 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
               </Link>
             </li>
           </ul>
+          <ul className="space-y-2 font-medium">
+            <li>
+              <Link
+                to="/ChooseYourOwnHistory"
+                className="flex items-center p-2 text-white rounded-lg dark:text-white hover:bg-neutral-600 dark:hover:bg-gray-700 group"
+              >
+                <QuizIcon />
+                <span className="ms-3 text-white">Choose Your Own History</span>
+              </Link>
+            </li>
+          </ul>
           <ul className="pt-4 mt-4 space-y-2 font-medium border-t border-gray-200 dark:border-gray-700">
             <li>
               <Link

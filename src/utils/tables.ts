@@ -332,3 +332,5 @@ export const elements = [
   "Leadership",
   "God",
 ];
+
+export const positiveOrNegative = ["positive", "negative"];
