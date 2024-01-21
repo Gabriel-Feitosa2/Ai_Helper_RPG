@@ -8,6 +8,7 @@ import { Modal } from "@mui/material";
 import ConfigModal from "../components/configModal";
 import { useConfigContext } from "../context/configcontext";
 import { LLMChain } from "langchain/chains";
+import { useNavigate } from "react-router-dom";
 
 interface ParametersProps {
   setting: string;
@@ -35,6 +36,8 @@ function AiHelper() {
   const [modalConfig, setModalConfig] = useState(firstOpen);
   const [disabledButton, setDisabledButton] = useState(false);
   const [error, setError] = useState(false);
+
+  const navigate = useNavigate();
 
   const GenerateResponse = async () => {
     if (!configs.openAiUrl) {
@@ -265,7 +268,15 @@ function AiHelper() {
           </div>
           <div className="flex justify-center">
             {error && (
-              <p className="text-red-600">You need to enter a URL in configs</p>
+              <p className="text-red-600">
+                You need to enter a URL in configs{" "}
+                <b
+                  onClick={() => navigate("/info")}
+                  className="cursor-pointer underline hover:text-red-700"
+                >
+                  click here to set up a url
+                </b>
+              </p>
             )}
           </div>
         </div>

@@ -1,4 +1,3 @@
-"use client";
 import React, { useState } from "react";
 import HelpIcon from "@mui/icons-material/Help";
 import HomeIcon from "@mui/icons-material/Home";
@@ -6,6 +5,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import { Link } from "react-router-dom";
 import ConfigModal from "../configModal";
 import QuizIcon from "@mui/icons-material/Quiz";
+import Book from "../../assets/book-cover.png";
 
 export default function Sidebar({ children }: { children: React.ReactNode }) {
   const [modal, setModal] = useState(false);
@@ -70,7 +70,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
                 to="/ChooseYourOwnHistory"
                 className="flex items-center p-2 text-white rounded-lg dark:text-white hover:bg-neutral-600 dark:hover:bg-gray-700 group"
               >
-                <QuizIcon />
+                <img src={Book} alt="" className="w-6 h-6" />
                 <span className="ms-3 text-white">Choose Your Own History</span>
               </Link>
             </li>

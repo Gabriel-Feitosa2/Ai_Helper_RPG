@@ -49,7 +49,7 @@ export default function InfoPage() {
               <b> model_url:</b> NOW PAY ATTENTION, YOU HAVE TO USE A MODEL
               OTHER THAN https://huggingface.co/TheBloke/MythoMax-L2-13B-GPTQ, I
               recommend using the different model
-              https://huggingface.co/TheBloke/Mistral-7B-OpenOrca-GPTQ Just
+              https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GPTQ Just
               replace the <b>model_url:</b> from one to another.
             </p>
             <p>

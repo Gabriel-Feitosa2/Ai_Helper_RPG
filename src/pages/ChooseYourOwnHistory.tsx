@@ -1,24 +1,27 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { actions, elements, positiveOrNegative, themes } from "../utils/tables";
 import { getRandomString } from "../utils/random";
-import { RunnableSequence } from "langchain/runnables";
-import { PromptTemplate } from "langchain/prompts";
+
 import { OpenAI } from "langchain/llms/openai";
 import { StructuredOutputParser } from "langchain/output_parsers";
 import Sidebar from "../components/sidebar";
 import { Modal } from "@mui/material";
-import ConfigModal from "../components/configModal";
+
 import { useConfigContext } from "../context/configcontext";
 import { BufferMemory } from "langchain/memory";
 import { ConversationChain } from "langchain/chains";
+import { useNavigate } from "react-router-dom";
 
 interface ParametersProps {
   setting: string;
   worldInfo: string;
+  community_Society: string;
   action: string;
   theme: string;
   element: string;
   question: string;
+  alignmentAxes1: string;
+  alignmentAxes2: string;
 }
 
 interface ResponseData {
@@ -49,30 +52,57 @@ function ChooseYourOwnHistory() {
   const [parameters, setParameters] = useState({
     setting: "",
     worldInfo: "",
+    community_Society: "",
     action: "Random",
     theme: "Random",
     element: "Random",
     question: "",
+    alignmentAxes1: "",
+    alignmentAxes2: "",
   } as ParametersProps);
-
   const [loading, setLoading] = useState(false);
   const [modal, setModal] = useState(true);
-
+  const [count, setCount] = useState(1);
+  const [summary, setSummary] = useState("");
+  const [error, setError] = useState(false);
   const [disabledButton, setDisabledButton] = useState(false);
 
+  const navigate = useNavigate();
+
+  // const handleChange1 = (event: React.ChangeEvent<HTMLInputElement>) => {
+  //   setParameters((parameters) => ({
+  //     ...parameters,
+  //     alignmentAxes1: event.target.value,
+  //   }));
+  // };
+
+  // const handleChange2 = (event: React.ChangeEvent<HTMLInputElement>) => {
+  //   setParameters((parameters) => ({
+  //     ...parameters,
+  //     alignmentAxes2: event.target.value,
+  //   }));
+  // };
+
   const GenerateResponse = async () => {
-    //setDisabledButton(true);
+    if (!configs.openAiUrl) {
+      setError(true);
+      return;
+    }
+    setError(false);
+    setModal(false);
+    setDisabledButton(true);
     setLoading(true);
     const model = new OpenAI({
       temperature: 0.9,
       openAIApiKey: "null",
+      maxTokens: -1,
       configuration: { baseURL: `${configs.openAiUrl.trim()}/v1` },
     });
 
     const parser = StructuredOutputParser.fromNamesAndDescriptions({
       difficulties:
         "describes some catastrophe, war, political situation etc... that happens in the setting",
-      solution1: "a possible solution to the difficulties",
+      solution1: `a possible solution to the difficulties, `,
       solutionPositive1: "a positive result from the solution1",
       solutionNegative1: "a negative solution from the solution1",
       solution2: "a possible solution to the difficulties",
@@ -80,30 +110,33 @@ function ChooseYourOwnHistory() {
       solutionNegative2: "a negative result from the solution2",
     });
 
-    console.log(parser.getFormatInstructions());
-
     const memory = new BufferMemory();
     const chain = new ConversationChain({ llm: model, memory: memory });
 
-    // const res2 = await chain.call({
-    //   input: "make another difficultie",
-    // });
-    // console.log({ res2 });
-
     try {
       const res1 = await chain.call({
-        input: `let's play a game, I will describe a setting such as a medieval kingdom, an exploring spaceship, a space colony etc..., and you will describe a scenario of difficultie and two possible solutions considering the previous scenarios, I will choose the scenario and I will talk about whether there will be a positive, negative or ambiguous result. use the following structure.
-     ${parser.getFormatInstructions()} for the difficultie, generates based on the following elements, action: ${getRandomString(
+        input: `let's play a game, I will describe a Community/Society such as a medieval kingdom, an exploring spaceship, a space colony etc..., and you will describe a scenario of difficultie and two possible solutions considering the previous scenarios, I will choose the scenario and I will talk about whether there will be a positive, negative or ambiguous result. use the following structure.
+     ${parser.getFormatInstructions()}. Be objective in your answers, never saying if. For the difficultie, generates based on the following elements, action: ${getRandomString(
           actions
         )}, theme: ${getRandomString(themes)} element: ${getRandomString(
           elements
-        )} .The setting is ${parameters.setting}. RESPOND ONLY WITH THE JSON`,
+        )} .The setting is ${parameters.setting} and Community/Society is: ${
+          parameters.community_Society
+        }. ${
+          parameters.worldInfo
+            ? `here is some information about the world: ${parameters.worldInfo}`
+            : ""
+        }. ${
+          parameters.alignmentAxes1 && parameters.alignmentAxes2
+            ? `based on the D&D alignment structure, make solutions based only on this alignment: ${parameters.alignmentAxes1} ${parameters.alignmentAxes2}`
+            : ""
+        }. RESPOND ONLY WITH THE JSON`,
       });
       const match = String(res1.response).match(/\{([^}]+)\}/);
       if (match) {
         const jsonSubstring = match[0];
         const responseData = JSON.parse(jsonSubstring);
-        console.log(responseData);
+
         setResponseCurrent({ data: { responseData }, from: "IA" });
         setLoading(false);
       } else {
@@ -139,12 +172,50 @@ function ChooseYourOwnHistory() {
       { data: data, from: "AI", resolution: getPositiveOrNegative() },
     ]);
     setResponseCurrent(undefined);
-    GenerateResponse();
+    setCount(count + 1);
+    if (count <= 4) {
+      GenerateResponse();
+    }
   };
 
-  console.log(responseCurrent);
-  console.log(responseHistory);
-  // console.log(response.res1.response.match(/\{([^}]+)\}/));
+  const genereteSummary = async () => {
+    setLoading(true);
+    let summaryData = "";
+    responseHistory.map((log) => {
+      if (log.resolution) {
+        summaryData += " resolution: " + log.resolution;
+      } else if (log.solution) {
+        summaryData += " solution: " + log.solution;
+      } else {
+        summaryData.concat(
+          " difficultie: ",
+          log.data.responseData.difficulties
+        );
+        summaryData += " difficultie: " + log.data.responseData.difficulties;
+      }
+    });
+
+    const model = new OpenAI({
+      temperature: 0.9,
+      openAIApiKey: "null",
+      maxTokens: -1,
+      configuration: { baseURL: `${configs.openAiUrl.trim()}/v1` },
+    });
+    const res = await model.call(
+      `Are you a writer of stories like Tolkien, George R. R. Martin
+and other fantasy and science fiction writers. I'm going to describe a series of scenarios, put all these stories together to create a cohesive story. here are the scenarios: ${summaryData}. Respond as if you were telling an epic tale`
+    );
+    setSummary(res);
+    setLoading(false);
+    setDisabledButton(false);
+    setCount(1);
+  };
+
+  useEffect(() => {
+    if (count >= 6) {
+      genereteSummary();
+    }
+  }, [count]);
 
   return (
     <Sidebar>
@@ -165,9 +236,9 @@ function ChooseYourOwnHistory() {
           </div>
         </div>
         <div className="mb-12">
-          <h1 className="font-extrabold text-lg">Choose Your Own History</h1>
+          <h1 className="font-extrabold text-3xl">Choose Your Own History</h1>
         </div>
-        <div className="bg-neutral-800 min-w-[54rem] min-h-[5rem] max-w-[54rem] h-[34rem] rounded-md p-4 overflow-scroll">
+        <div className="bg-neutral-800 min-w-[32rem] min-h-[5rem] w-[60%] h-[34rem] rounded-md p-4 overflow-auto">
           {responseHistory.map((response: any) => {
             return (
               <>
@@ -238,6 +309,11 @@ function ChooseYourOwnHistory() {
               </div>
             </>
           )}
+          {summary && (
+            <div className={"flex justify-endw-full mb-4"}>
+              <p className={"bg-gray-600 max-w-96 rounded-md p-2"}>{summary}</p>
+            </div>
+          )}
           {loading && (
             <div role="status" className="flex justify-center items-center">
               <svg
@@ -260,15 +336,6 @@ function ChooseYourOwnHistory() {
             </div>
           )}
         </div>
-        <div className="flex items-center gap-8">
-          <button
-            onClick={() => GenerateResponse()}
-            className="bg-fuchsia-950 rounded p-2 h-12 mt-4 disabled:opacity-60"
-            disabled={disabledButton}
-          >
-            Generate Adventure
-          </button>
-        </div>
       </div>
 
       <Modal
@@ -283,22 +350,103 @@ function ChooseYourOwnHistory() {
         >
           <div className="flex flex-col gap-4">
             <div>
-              <label className="block mb-2 text-sm font-medium text-center dark:text-white">
-                The Setting of the Community
-              </label>
-              <input
-                type="text"
-                placeholder="Setting"
-                className="h-10 p-2 bg-neutral-900 rounded w-full"
-                value={parameters.setting}
-                onChange={(e) =>
-                  setParameters((parameters) => ({
-                    ...parameters,
-                    setting: e.target.value,
-                  }))
-                }
-              ></input>
+              <div className="flex items-center gap-4">
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-center dark:text-white">
+                    Setting
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="medieval fantasy, sci fi, etc..."
+                    className="min-w-64 h-10 p-2 bg-neutral-900 rounded"
+                    value={parameters.setting}
+                    onChange={(e) =>
+                      setParameters((parameters) => ({
+                        ...parameters,
+                        setting: e.target.value,
+                      }))
+                    }
+                  ></input>
+                </div>
+                <div>
+                  <label className="block mb-2 text-sm font-medium text-center dark:text-white">
+                    Community/Society
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Dwarf kingdom, space colony,rebel group "
+                    className="min-w-72 h-10 p-2 bg-neutral-900 rounded w-full"
+                    value={parameters.community_Society}
+                    onChange={(e) =>
+                      setParameters((parameters) => ({
+                        ...parameters,
+                        community_Society: e.target.value,
+                      }))
+                    }
+                  ></input>
+                </div>
+              </div>
             </div>
+            {/* <div className="flex justify-between items-center gap-4">
+              <div className="w-full bg-white h-[1px]"></div>
+              <p>Alignment(optional)</p>
+              <div className="w-full bg-white h-[1px]"></div>
+            </div> */}
+
+            {/* <FormControl component="fieldset">
+              <RadioGroup
+                aria-label="grupo1"
+                name="grupo1"
+                value={parameters.alignmentAxes1}
+                onChange={handleChange1}
+              >
+                <div className="flex justify-between items-center">
+                  <FormControlLabel
+                    value="Lawful"
+                    control={<Radio />}
+                    label="Lawful"
+                  />
+                  <FormControlLabel
+                    value="Neutral"
+                    control={<Radio />}
+                    label="Neutral"
+                  />
+                  <FormControlLabel
+                    value="Chaotic"
+                    control={<Radio />}
+                    label="Chaotic"
+                  />
+                </div>
+              </RadioGroup>
+            </FormControl>
+
+            <FormControl component="fieldset">
+              <RadioGroup
+                aria-label="grupo2"
+                name="grupo2"
+                value={parameters.alignmentAxes2}
+                onChange={handleChange2}
+              >
+                <div className="flex justify-between items-center ">
+                  <FormControlLabel
+                    value="Good"
+                    control={<Radio />}
+                    label="Good"
+                  />
+                  <FormControlLabel
+                    value="Neutral"
+                    control={<Radio />}
+                    label="Neutral"
+                  />
+                  <FormControlLabel
+                    value="Evil"
+                    control={<Radio />}
+                    label="Evil"
+                  />
+                </div>
+              </RadioGroup>
+            </FormControl> */}
+
             <div className="flex flex-col gap-4">
               <textarea
                 id="textarea"
@@ -316,6 +464,30 @@ function ChooseYourOwnHistory() {
                 }
               ></textarea>
             </div>
+          </div>
+          <div className="w-full flex items-center justify-center gap-8">
+            <button
+              onClick={() => {
+                GenerateResponse();
+              }}
+              className="bg-fuchsia-900 rounded p-2 h-12 mt-4 disabled:opacity-60 hover:bg-fuchsia-950"
+              disabled={disabledButton}
+            >
+              Generate History
+            </button>
+          </div>
+          <div className="flex items-center justify-center mt-2">
+            {error && (
+              <p className="text-red-600">
+                You need to enter a URL in configs,{" "}
+                <b
+                  onClick={() => navigate("/info")}
+                  className="cursor-pointer underline hover:text-red-700"
+                >
+                  click here to set up a url
+                </b>
+              </p>
+            )}
           </div>
         </div>
       </Modal>
