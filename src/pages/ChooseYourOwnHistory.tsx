@@ -42,6 +42,7 @@ interface ResponseProps {
   from: string;
   solution?: string;
   resolution?: string;
+  summary?: string;
 }
 
 function ChooseYourOwnHistory() {
@@ -63,7 +64,6 @@ function ChooseYourOwnHistory() {
   const [loading, setLoading] = useState(false);
   const [modal, setModal] = useState(true);
   const [count, setCount] = useState(1);
-  const [summary, setSummary] = useState("");
   const [error, setError] = useState(false);
   const [disabledButton, setDisabledButton] = useState(false);
 
@@ -205,7 +205,15 @@ function ChooseYourOwnHistory() {
       `Are you a writer of stories like Tolkien, George R. R. Martin
 and other fantasy and science fiction writers. I'm going to describe a series of scenarios, put all these stories together to create a cohesive story. here are the scenarios: ${summaryData}. Respond as if you were telling an epic tale`
     );
-    setSummary(res);
+    // setSummary(res);
+    setResponseHistory([
+      ...responseHistory,
+      {
+        data: responseHistory[1].data,
+        from: "AI",
+        summary: res,
+      },
+    ]);
     setLoading(false);
     setDisabledButton(false);
     setCount(1);
@@ -239,7 +247,7 @@ and other fantasy and science fiction writers. I'm going to describe a series of
           <h1 className="font-extrabold text-3xl">Choose Your Own History</h1>
         </div>
         <div className="bg-neutral-800 min-w-[32rem] min-h-[5rem] w-[60%] h-[34rem] rounded-md p-4 overflow-auto">
-          {responseHistory.map((response: any) => {
+          {responseHistory.map((response) => {
             return (
               <>
                 {" "}
@@ -251,9 +259,13 @@ and other fantasy and science fiction writers. I'm going to describe a series of
                   <p
                     className={`${
                       response.from === "AI" ? "bg-gray-600" : "bg-green-500"
-                    } max-w-64 rounded-md p-2`}
+                    } ${
+                      response.summary ? "max-w-96" : "max-w-64"
+                    } rounded-md p-2`}
                   >
-                    {response.resolution
+                    {response.summary
+                      ? response.summary
+                      : response.resolution
                       ? response.resolution
                       : response.from === "AI"
                       ? response.data.responseData.difficulties
@@ -309,11 +321,11 @@ and other fantasy and science fiction writers. I'm going to describe a series of
               </div>
             </>
           )}
-          {summary && (
+          {/* {summary && (
             <div className={"flex justify-endw-full mb-4"}>
               <p className={"bg-gray-600 max-w-96 rounded-md p-2"}>{summary}</p>
             </div>
-          )}
+          )} */}
           {loading && (
             <div role="status" className="flex justify-center items-center">
               <svg
