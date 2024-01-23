@@ -415,11 +415,17 @@ and other fantasy and science fiction writers. I'm going to describe a series of
                 </div>
                 <div>
                   <label className="block mb-2 text-sm font-medium text-center dark:text-white">
-                    Community/Society
+                    {parameters.type === "character"
+                      ? "Character"
+                      : "Community/Society"}
                   </label>
                   <input
                     type="text"
-                    placeholder="Dwarf kingdom, space colony,rebel group "
+                    placeholder={`${
+                      parameters.type === "character"
+                        ? "medieval knight, druid, vampire"
+                        : "Dwarf kingdom, space colony,rebel group"
+                    }`}
                     className="min-w-72 h-10 p-2 bg-neutral-900 rounded w-full"
                     value={parameters.protagonist_concept}
                     onChange={(e) =>
