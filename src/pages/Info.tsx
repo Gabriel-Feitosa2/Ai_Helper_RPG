@@ -48,9 +48,11 @@ export default function InfoPage() {
               In the “Launch the web UI section” you will see a field called
               <b> model_url:</b> NOW PAY ATTENTION, YOU HAVE TO USE A MODEL
               OTHER THAN https://huggingface.co/TheBloke/MythoMax-L2-13B-GPTQ, I
-              recommend using the different model
-              https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GPTQ Just
-              replace the <b>model_url:</b> from one to another.
+              recommend using the different model{" "}
+              <b>
+                https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GPTQ,
+              </b>{" "}
+              Just replace the <b>model_url:</b> from one to another.
             </p>
             <p>
               About the branch “command line flags”, you can leave it the way it

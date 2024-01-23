@@ -13,9 +13,10 @@ import { ConversationChain } from "langchain/chains";
 import { useNavigate } from "react-router-dom";
 
 interface ParametersProps {
+  type: string;
   setting: string;
   worldInfo: string;
-  community_Society: string;
+  protagonist_concept: string;
   action: string;
   theme: string;
   element: string;
@@ -51,9 +52,10 @@ function ChooseYourOwnHistory() {
   const [responseCurrent, setResponseCurrent] = useState<ResponseProps>();
   const [responseHistory, setResponseHistory] = useState<ResponseProps[]>([]);
   const [parameters, setParameters] = useState({
+    type: "character",
     setting: "",
     worldInfo: "",
-    community_Society: "",
+    protagonist_concept: "",
     action: "Random",
     theme: "Random",
     element: "Random",
@@ -100,8 +102,11 @@ function ChooseYourOwnHistory() {
     });
 
     const parser = StructuredOutputParser.fromNamesAndDescriptions({
-      difficulties:
-        "describes some catastrophe, war, political situation etc... that happens in the setting",
+      difficulties: `${
+        parameters.type === "character"
+          ? "describe some difficulties, an old enemy, an dangerous situation, political situation, etc... that happens with the character"
+          : "describes some catastrophe, war, political situation etc... that happens in the setting"
+      }`,
       solution1: `a possible solution to the difficulties, `,
       solutionPositive1: "a positive result from the solution1",
       solutionNegative1: "a negative solution from the solution1",
@@ -115,13 +120,20 @@ function ChooseYourOwnHistory() {
 
     try {
       const res1 = await chain.call({
-        input: `let's play a game, I will describe a Community/Society such as a medieval kingdom, an exploring spaceship, a space colony etc..., and you will describe a scenario of difficultie and two possible solutions considering the previous scenarios, I will choose the scenario and I will talk about whether there will be a positive, negative or ambiguous result. use the following structure.
+        input: `let's play a game, I will describe a ${
+          parameters.type === "character"
+            ? "A character such as a medieval knight, vampire, space explore etc..."
+            : "Community/Society such as a medieval kingdom, an exploring spaceship, an space colony etc..."
+        }, and you will describe a scenario of difficultie and two possible solutions considering the previous scenarios, I will choose the scenario and I will talk about whether there will be a positive, negative or ambiguous result. use the following structure.
      ${parser.getFormatInstructions()}. Be objective in your answers, never saying if. For the difficultie, generates based on the following elements, action: ${getRandomString(
           actions
         )}, theme: ${getRandomString(themes)} element: ${getRandomString(
           elements
-        )} .The setting is ${parameters.setting} and Community/Society is: ${
-          parameters.community_Society
+        )} .The setting is ${parameters.setting} and The ${
+          parameters.type === "character" ? "Character" : "Community/Society"
+        } is: ${parameters.protagonist_concept}, ${
+          parameters.type === "character " &&
+          "He is the protagonist of the story and you will tell his story"
         }. ${
           parameters.worldInfo
             ? `here is some information about the world: ${parameters.worldInfo}`
@@ -362,6 +374,27 @@ and other fantasy and science fiction writers. I'm going to describe a series of
         >
           <div className="flex flex-col gap-4">
             <div>
+              <label className="block mb-2 text-sm font-medium text-center dark:text-white">
+                What story do you want to tell?
+              </label>
+              <select
+                id="default"
+                className="w-full bg-neutral-800 border border-black mb-6 text-sm rounded-lg focus:bg-neutral-800 focus:border-blue-500 block w-38 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-red-800 dark:focus:border-red-800"
+                onChange={(e) =>
+                  setParameters((parameters) => ({
+                    ...parameters,
+                    type: e.target.value,
+                  }))
+                }
+                defaultValue={"character"}
+              >
+                <option selected value="character">
+                  Character
+                </option>
+                <option selected value="community_society">
+                  Community/Society
+                </option>
+              </select>
               <div className="flex items-center gap-4">
                 <div>
                   <label className="block mb-2 text-sm font-medium text-center dark:text-white">
@@ -388,11 +421,11 @@ and other fantasy and science fiction writers. I'm going to describe a series of
                     type="text"
                     placeholder="Dwarf kingdom, space colony,rebel group "
                     className="min-w-72 h-10 p-2 bg-neutral-900 rounded w-full"
-                    value={parameters.community_Society}
+                    value={parameters.protagonist_concept}
                     onChange={(e) =>
                       setParameters((parameters) => ({
                         ...parameters,
-                        community_Society: e.target.value,
+                        protagonist_concept: e.target.value,
                       }))
                     }
                   ></input>
