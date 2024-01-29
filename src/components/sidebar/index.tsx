@@ -6,6 +6,9 @@ import { Link } from "react-router-dom";
 import ConfigModal from "../configModal";
 import QuizIcon from "@mui/icons-material/Quiz";
 import Book from "../../assets/book-cover.png";
+import { IconButton } from "@mui/material";
+import GitHubIcon from "@mui/icons-material/GitHub";
+import LinkedInIcon from "@mui/icons-material/LinkedIn";
 
 export default function Sidebar({ children }: { children: React.ReactNode }) {
   const [modal, setModal] = useState(false);
@@ -42,63 +45,91 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
         aria-label="Sidebar"
       >
         <div className="h-full px-3 py-4 overflow-y-auto bg-neutral-800 dark:bg-gray-800">
-          <ul className="space-y-2 font-medium">
-            <li>
-              <Link
-                to="/"
-                className="flex items-center p-2 text-white rounded-lg dark:text-white hover:bg-neutral-600 dark:hover:bg-gray-700 group"
-              >
-                <HomeIcon />
-                <span className="ms-3 text-white">Adventure Generator</span>
-              </Link>
-            </li>
-          </ul>
-          <ul className="space-y-2 font-medium">
-            <li>
-              <Link
-                to="/AiHelper"
-                className="flex items-center p-2 text-white rounded-lg dark:text-white hover:bg-neutral-600 dark:hover:bg-gray-700 group"
-              >
-                <QuizIcon />
-                <span className="ms-3 text-white">AI DM Helper</span>
-              </Link>
-            </li>
-          </ul>
-          <ul className="space-y-2 font-medium">
-            <li>
-              <Link
-                to="/ChooseYourOwnHistory"
-                className="flex items-center p-2 text-white rounded-lg dark:text-white hover:bg-neutral-600 dark:hover:bg-gray-700 group"
-              >
-                <img src={Book} alt="" className="w-6 h-6" />
-                <span className="ms-3 text-white">Choose Your Own History</span>
-              </Link>
-            </li>
-          </ul>
-          <ul className="pt-4 mt-4 space-y-2 font-medium border-t border-gray-200 dark:border-gray-700">
-            <li>
-              <Link
-                to="/info"
-                className="flex items-center p-2 text-whiterounded-lg rounded-md dark:text-white hover:bg-neutral-600 dark:hover:bg-gray-700 group"
-              >
-                <HelpIcon />
-                <span className="flex-1 ms-3 whitespace-nowrap text-white">
-                  infos
-                </span>
-              </Link>
-            </li>
-            <li>
-              <div
-                className="w-full cursor-pointer p-2 text-whiterounded-lg rounded-md dark:text-white hover:bg-neutral-600 dark:hover:bg-gray-700 group"
-                onClick={() => setModal(true)}
-              >
-                <SettingsIcon />
-                <span className="flex-1 ms-3 whitespace-nowrap text-white">
-                  Configs
-                </span>
-              </div>
-            </li>
-          </ul>
+          <div className="h-full flex flex-col">
+            <div className="justify-start">
+              <ul className="space-y-2 font-medium">
+                <li>
+                  <Link
+                    to="/"
+                    className="flex items-center p-2 text-white rounded-lg dark:text-white hover:bg-neutral-600 dark:hover:bg-gray-700 group"
+                  >
+                    <HomeIcon />
+                    <span className="ms-3 text-white">Adventure Generator</span>
+                  </Link>
+                </li>
+              </ul>
+              <ul className="space-y-2 font-medium">
+                <li>
+                  <Link
+                    to="/AiHelper"
+                    className="flex items-center p-2 text-white rounded-lg dark:text-white hover:bg-neutral-600 dark:hover:bg-gray-700 group"
+                  >
+                    <QuizIcon />
+                    <span className="ms-3 text-white">AI DM Helper</span>
+                  </Link>
+                </li>
+              </ul>
+              <ul className="space-y-2 font-medium">
+                <li>
+                  <Link
+                    to="/ChooseYourOwnHistory"
+                    className="flex items-center p-2 text-white rounded-lg dark:text-white hover:bg-neutral-600 dark:hover:bg-gray-700 group"
+                  >
+                    <img src={Book} alt="" className="w-6 h-6" />
+                    <span className="ms-3 text-white">
+                      Choose Your Own History
+                    </span>
+                  </Link>
+                </li>
+              </ul>
+              <ul className="pt-4 mt-4 space-y-2 font-medium border-t border-gray-200 dark:border-gray-700">
+                <li>
+                  <Link
+                    to="/info"
+                    className="flex items-center p-2 text-whiterounded-lg rounded-md dark:text-white hover:bg-neutral-600 dark:hover:bg-gray-700 group"
+                  >
+                    <HelpIcon />
+                    <span className="flex-1 ms-3 whitespace-nowrap text-white">
+                      infos
+                    </span>
+                  </Link>
+                </li>
+                <li>
+                  <div
+                    className="w-full cursor-pointer p-2 text-whiterounded-lg rounded-md dark:text-white hover:bg-neutral-600 dark:hover:bg-gray-700 group"
+                    onClick={() => setModal(true)}
+                  >
+                    <SettingsIcon />
+                    <span className="flex-1 ms-3 whitespace-nowrap text-white">
+                      Configs
+                    </span>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            <div className="flex justify-end h-full flex-col">
+              <ul className="pt-4 mt-4 space-y-2 font-medium border-t border-gray-200 dark:border-gray-700">
+                <a
+                  href="https://github.com/Gabriel-Feitosa2/Ai_Helper_RPG"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <IconButton aria-label="GitHub">
+                    <GitHubIcon sx={{ color: "white" }} />
+                  </IconButton>
+                </a>
+                <a
+                  href="https://www.linkedin.com/in/gabriel-feitosa-b02b70186"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <IconButton aria-label="GitHub">
+                    <LinkedInIcon sx={{ color: "white" }} />
+                  </IconButton>
+                </a>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
       {children}
